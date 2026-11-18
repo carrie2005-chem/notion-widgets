@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<title>Sticky Notes Board</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij4KPGRlZnM+CiA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjRkZENzVFIi8+CiAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRjRBQzM1Ii8+CiA8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+CjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE1IiBmaWxsPSJ1cmwoI2JnKSIvPgo8cGF0aCBkPSJNMTcgMTFINDBMNTAgMjFWNDlRNTAgNTMgNDYgNTNIMTdRMTMgNTMgMTMgNDlWMTVRMTMgMTEgMTcgMTFaIiBmaWxsPSIjRkZGREY2Ii8+CjxwYXRoIGQ9Ik00MCAxMVYxOVE0MCAyMiA0MyAyMkg1MCIgZmlsbD0iI0Y1RTlDOSIvPgo8cGF0aCBkPSJNNDAgMTFWMTlRNDAgMjIgNDMgMjJINTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0UyQjg2QSIgc3Ryb2tlLXdpZHRoPSIxLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTIxIDI5SDQyTTIxIDM2SDQyTTIxIDQzSDM1IiBmaWxsPSJub25lIiBzdHJva2U9IiNDNzg1MkYiIHN0cm9rZS13aWR0aD0iMy4xIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+">
+<style>
+:root{
+ color-scheme:light;
+ --ink:#273448;--muted:#718096;--line:#e4e9f1;--primary:#456ad7;--primary-hover:#3659c2;
+ --page:#f8faff;--toolbar:#fff;--button:#fff;--button-border:#dfe5ee;--button-hover:#f4f6fa;
+ --board:#f9faff;--grid:#d9e0ef;--surface:#fff;--surface-text:#36445a;
+ --note-title:#253249;--note-text:#334056;--note-placeholder:#8993a4;
+ --note-grip:#737f92;--note-separator:rgba(45,54,74,.07);--note-shadow:rgba(53,68,99,.12);
+ --note-selected:#4b628b;--note-delete:#65728b;--danger:#a52e43;
+ --yellow:#fff2b5;--pink:#ffdfe9;--blue:#dbeeff;--green:#dcf4e2;--purple:#e9dfff;
+}
+:root[data-theme="dark"]{
+ color-scheme:dark;
+ --ink:#f0f0f1;--muted:#b3b3b8;--line:#424247;--primary:#8598e9;--primary-hover:#9cacf2;
+ --page:#1a1a1c;--toolbar:#29292c;--button:#353539;--button-border:#55555a;--button-hover:#444449;
+ --board:#202023;--grid:#38383d;--surface:#303034;--surface-text:#efeff1;
+ --note-title:#ffffff;--note-text:#f5f5f7;--note-placeholder:#dedee3;
+ --note-grip:#e2e2e5;--note-separator:rgba(255,255,255,.15);--note-shadow:rgba(0,0,0,.35);
+ --note-selected:#ffffff;--note-delete:#f0f0f3;--danger:#ffbdcb;
+ --yellow:#8a671b;--pink:#965073;--blue:#326998;--green:#327454;--purple:#7152a0;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;width:100%}
+body{font:14px/1.45 Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--page)}
+.app{width:100%;min-height:100vh;display:flex;flex-direction:column}
+.toolbar{min-height:58px;padding:10px 17px;background:var(--toolbar);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+button,.filelabel{font:650 12px/1.2 Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--button);border:1px solid var(--button-border);border-radius:9px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+button:hover,.filelabel:hover{background:var(--button-hover)}
+button:focus-visible,.filelabel:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #7997e8;outline-offset:2px}
+button.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+button.primary:hover{background:var(--primary-hover)}
+:root[data-theme="dark"] button.primary{color:#17171b}
+.board-wrap{width:100%;flex:1;overflow:auto}
+.board{position:relative;width:100%;min-height:650px;height:max(650px,calc(100vh - 58px));background-color:var(--board);background-image:radial-gradient(var(--grid) 1px,transparent 1px);background-size:20px 20px}
+.note{position:absolute;display:flex;flex-direction:column;width:234px;height:190px;border-radius:11px;border:1px solid rgba(49,62,88,.08);overflow:hidden;box-shadow:0 5px 15px var(--note-shadow);transition:box-shadow .15s;touch-action:auto}
+.note:hover{box-shadow:0 8px 24px var(--note-shadow)}
+.note.dragging,.note.resizing{box-shadow:0 14px 32px rgba(0,0,0,.3);z-index:1000!important}
+.note.yellow{background:var(--yellow)}.note.pink{background:var(--pink)}.note.blue{background:var(--blue)}.note.green{background:var(--green)}.note.purple{background:var(--purple)}
+:root[data-theme="dark"] .note{border-color:rgba(255,255,255,.18)}
+.notehead{height:37px;padding:5px 8px 4px 10px;display:flex;gap:5px;align-items:center;border-bottom:1px solid var(--note-separator)}
+.drag{height:26px;min-width:21px;line-height:26px;font-size:18px;text-align:center;color:var(--note-grip);cursor:grab;touch-action:none;user-select:none}
+.drag:active{cursor:grabbing}
+.notetitle{width:100%;min-width:0;flex:1;border:0;outline:none;background:transparent;color:var(--note-title);font:750 13px Inter,"Segoe UI",Arial,sans-serif}
+.notetitle:focus{box-shadow:inset 0 -1px #7995d3}
+.note textarea{width:100%;flex:1;resize:none;border:0;outline:none;background:transparent;padding:12px 14px;color:var(--note-text);font:13px/1.55 Inter,"Segoe UI",Arial,sans-serif}
+.note textarea::placeholder{color:var(--note-placeholder)}
+.notebottom{display:flex;align-items:center;justify-content:space-between;padding:4px 9px 8px}
+.swatches{display:flex;gap:6px}
+.swatch{width:14px;height:14px;min-width:14px;padding:0;border-radius:50%;border:1px solid rgba(46,59,81,.14)}
+.swatch.active{outline:2px solid var(--note-selected);outline-offset:2px}
+.swatch.yellow{background:#f7db65}.swatch.pink{background:#f3a7c1}.swatch.blue{background:#96cbed}.swatch.green{background:#a1d7b0}.swatch.purple{background:#c6adee}
+.del{padding:2px 6px;border:0;background:transparent;color:var(--note-delete);font-size:17px;line-height:1}
+.del:hover{background:rgba(245,87,111,.13);color:var(--danger)}
+/* Uchwyt zmiany rozmiaru karteczki — przeciąganie w obu osiach. */
+.note .resize-handle{position:absolute;bottom:0;right:0;width:24px;height:24px;padding:0;margin:0;border:0;border-radius:0 0 10px 0;background:transparent;cursor:nwse-resize;touch-action:none;user-select:none;z-index:2}
+.note .resize-handle::after{content:"";position:absolute;right:4px;bottom:4px;width:15px;height:15px;opacity:.76;background:repeating-linear-gradient(135deg,transparent 0 4px,var(--note-grip) 4px 5.5px,transparent 5.5px 7.5px);clip-path:polygon(100% 0,100% 100%,0 100%)}
+.note .resize-handle:hover::after,.note .resize-handle:focus-visible::after{opacity:1}
+/* Miejsce na uchwyt, aby nie przykrywał przycisku usuwania. */
+.notebottom{padding-right:27px}
+
+.empty{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--muted);pointer-events:none}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);max-width:min(90vw,520px);padding:10px 15px;border:1px solid var(--line);background:var(--surface);color:var(--surface-text);border-radius:11px;box-shadow:0 6px 24px rgba(30,45,70,.11);font-size:12px;z-index:1500;display:none;text-align:center}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(10,17,30,.65);z-index:3000}
+.dialog{width:100%;max-width:540px;padding:22px;border-radius:14px;background:var(--surface);box-shadow:0 20px 50px rgba(0,0,0,.2)}
+.dialog h2{font-size:17px;margin:0 0 8px}.dialog p{font-size:12px;color:var(--muted)}
+.dialog textarea{display:block;width:100%;height:190px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--button);color:var(--surface-text);font:11px/1.45 Consolas,monospace;resize:vertical}
+.dialog .actions{justify-content:flex-end;margin-top:12px}
+@media(max-width:600px){.toolbar{padding:9px 10px;gap:8px}.actions{gap:6px}button,.filelabel{padding:8px 10px}.board{height:max(620px,calc(100vh - 55px))}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="toolbar" id="toolbar">
+    <button class="primary" id="add">+ Dodaj karteczkę</button>
+    <div class="actions">
+      <button id="themeToggle" type="button" aria-pressed="false" title="Przełącz na tryb ciemny">☾ Tryb ciemny</button>
+      <button id="export" title="Zapisz kopię notatek jako JSON">Eksport JSON</button>
+      <label class="filelabel" for="import">Import JSON</label>
+      <input id="import" type="file" accept=".json,application/json" hidden>
+    </div>
+  </div>
+  <div class="board-wrap"><div class="board" id="board"><div class="empty" id="empty">Tablica jest pusta. Dodaj pierwszą karteczkę.</div></div></div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="fallback" class="modal" role="dialog" aria-modal="true" aria-label="Kopia zapasowa JSON">
+  <div class="dialog">
+    <h2>Kopia zapasowa notatek</h2>
+    <p>Jeśli pobranie pliku nie zadziałało, skopiuj poniższy tekst i zachowaj go jako plik .json.</p>
+    <textarea id="jsontext" readonly></textarea>
+    <div class="actions"><button id="copyjson">Kopiuj dane</button><button id="closemodal" class="primary">Zamknij</button></div>
+  </div>
+</div>
+<script>
+(()=>{'use strict';
+// Zachowany klucz pozwala odczytać dane z poprzedniej wersji w tym samym kontekście przeglądarki.
+const KEY='notion_sticky_board_storage_test_v1';
+const COLORS=['yellow','pink','blue','green','purple'];
+const DEFAULT_W=234,DEFAULT_H=190,MIN_W=170,MIN_H=130,MAX_W=1800,MAX_H=1400;
+const $=id=>document.getElementById(id);
+let available=false,highestZ=1,toastTimer;
+let state={version:1,theme:'light',notes:[],updatedAt:null};
+function announce(message){const toast=$('toast');toast.textContent=message;toast.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.style.display='none',3300);}
+function safeSize(value,fallback,min,max){
+ const n=Number(value);
+ return Number.isFinite(n)&&n>0?Math.max(min,Math.min(max,Math.round(n))):fallback;
+}
+function normalize(data,fallbackTheme='light'){return {version:1,theme:['light','dark'].includes(data.theme)?data.theme:fallbackTheme,notes:(Array.isArray(data.notes)?data.notes:[]).slice(0,120).map((n,i)=>({
+ id:String(n.id||('n'+Date.now()+i)).replace(/[^\w-]/g,'').slice(0,80),
+ title:String(n.title??'Nowa karteczka').slice(0,90),text:String(n.text??'').slice(0,12000),
+ color:COLORS.includes(n.color)?n.color:'yellow',
+ x:Math.max(0,Math.min(30000,Number(n.x)||0)),y:Math.max(0,Math.min(20000,Number(n.y)||0)),
+ z:Math.max(1,Math.min(100000,Number(n.z)||i+1)),
+ w:safeSize(n.w,DEFAULT_W,MIN_W,MAX_W),h:safeSize(n.h,DEFAULT_H,MIN_H,MAX_H)
+})),updatedAt:typeof data.updatedAt==='number'?data.updatedAt:null};}
+try{
+ const probe='__sticky_probe_2026__';localStorage.setItem(probe,'ok');available=localStorage.getItem(probe)==='ok';localStorage.removeItem(probe);
+ if(available){const raw=localStorage.getItem(KEY);if(raw){const obj=JSON.parse(raw);if(obj&&Array.isArray(obj.notes))state=normalize(obj);}}
+}catch(e){available=false;}
+function save(){state.updatedAt=Date.now();if(available){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){available=false;announce('Zapis lokalny nie powiódł się. Zrób kopię JSON.');}}}
+function applyTheme(){
+ const dark=state.theme==='dark';
+ document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+ const button=$('themeToggle');
+ button.textContent=dark?'☀ Tryb jasny':'☾ Tryb ciemny';
+ button.title=dark?'Przełącz na tryb jasny':'Przełącz na tryb ciemny';
+ button.setAttribute('aria-pressed',String(dark));
+ document.querySelector('meta[name="theme-color"]').content=dark?'#29292c':'#ffffff';
+}
+// Tablica może rozszerzyć się, gdy karteczka wykracza poza obszar ekranu.
+// Dzięki temu zmiana proporcji nie jest ograniczona prawą/dolną krawędzią okna.
+function syncBoardSize(){
+ const board=$('board');
+ const baseW=board.parentElement.clientWidth;
+ const baseH=Math.max(650,window.innerHeight-$('toolbar').offsetHeight);
+ const usedW=Math.max(baseW,...state.notes.map(n=>n.x+n.w+24));
+ const usedH=Math.max(baseH,...state.notes.map(n=>n.y+n.h+24));
+ board.style.width=usedW>baseW?Math.ceil(usedW)+'px':'100%';
+ board.style.height=Math.ceil(usedH)+'px';
+}
+function setNoteSize(note,card,w,h){
+ note.w=safeSize(w,DEFAULT_W,MIN_W,MAX_W);
+ note.h=safeSize(h,DEFAULT_H,MIN_H,MAX_H);
+ card.style.width=note.w+'px';
+ card.style.height=note.h+'px';
+ syncBoardSize();
+}
+function makeInput(parent,tag,className,value,placeholder,onInput){const el=document.createElement(tag);el.className=className;el.value=value;el.placeholder=placeholder;el.addEventListener('input',()=>onInput(el.value));parent.appendChild(el);return el;}
+function render(){
+ const board=$('board');board.querySelectorAll('.note').forEach(e=>e.remove());
+ syncBoardSize();
+ highestZ=Math.max(1,...state.notes.map(n=>n.z));
+ for(const note of state.notes){
+  const card=document.createElement('div');card.className='note '+note.color;card.dataset.id=note.id;
+  board.appendChild(card);
+  card.style.width=note.w+'px';card.style.height=note.h+'px';
+  card.style.left=Math.min(note.x,Math.max(0,board.clientWidth-card.offsetWidth))+'px';
+  card.style.top=Math.min(note.y,Math.max(0,board.clientHeight-card.offsetHeight))+'px';
+  card.style.zIndex=note.z;
+  const head=document.createElement('div');head.className='notehead';
+  const grip=document.createElement('div');grip.className='drag';grip.textContent='⠿';grip.title='Przeciągnij karteczkę';grip.setAttribute('aria-label','Przeciągnij karteczkę');head.appendChild(grip);
+  makeInput(head,'input','notetitle',note.title,'Tytuł',v=>{note.title=v;save()});card.appendChild(head);
+  makeInput(card,'textarea','',note.text,'Twoja notatka…',v=>{note.text=v;save()});
+  const foot=document.createElement('div');foot.className='notebottom';const sw=document.createElement('div');sw.className='swatches';
+  for(const c of COLORS){const b=document.createElement('button');b.className='swatch '+c+(c===note.color?' active':'');b.title='Kolor: '+c;b.setAttribute('aria-label','Kolor: '+c);b.addEventListener('click',()=>{note.color=c;card.className='note '+c;sw.querySelectorAll('.swatch').forEach(x=>x.classList.toggle('active',x===b));save()});sw.appendChild(b);}
+  foot.appendChild(sw);
+  const del=document.createElement('button');del.className='del';del.title='Usuń karteczkę (potwierdź drugim kliknięciem)';del.textContent='×';let armed=false;
+  del.addEventListener('click',()=>{if(!armed){armed=true;del.textContent='Usuń?';del.style.fontSize='11px';del.style.color='var(--danger)';return;}state.notes=state.notes.filter(n=>n.id!==note.id);save();render();});
+  foot.appendChild(del);card.appendChild(foot);
+  // Niezależna regulacja szerokości i wysokości, także myszą lub dotykiem.
+  const handle=document.createElement('button');handle.type='button';handle.className='resize-handle';
+  handle.title='Przeciągnij, aby zmienić szerokość i wysokość (strzałki na klawiaturze również działają)';
+  handle.setAttribute('aria-label','Zmień rozmiar karteczki: '+(note.title||'bez tytułu'));
+  card.appendChild(handle);
+  handle.addEventListener('pointerdown',e=>{
+   if(e.pointerType==='mouse'&&e.button!==0)return;
+   e.preventDefault();e.stopPropagation();
+   const sx=e.clientX,sy=e.clientY,startW=note.w,startH=note.h,pid=e.pointerId;
+   note.x=card.offsetLeft;note.y=card.offsetTop;
+   note.z=++highestZ;card.style.zIndex=note.z;card.classList.add('resizing');
+   try{handle.setPointerCapture(pid);}catch(_){}
+   let active=true;
+   const move=ev=>{
+    if(!active||ev.pointerId!==pid)return;
+    setNoteSize(note,card,startW+ev.clientX-sx,startH+ev.clientY-sy);
+   };
+   const done=ev=>{
+    if(!active||ev.pointerId!==pid)return;
+    active=false;
+    handle.removeEventListener('pointermove',move);
+    handle.removeEventListener('pointerup',done);
+    handle.removeEventListener('pointercancel',done);
+    handle.removeEventListener('lostpointercapture',done);
+    card.classList.remove('resizing');
+    if(handle.hasPointerCapture(pid))handle.releasePointerCapture(pid);
+    save();
+   };
+   handle.addEventListener('pointermove',move);
+   handle.addEventListener('pointerup',done);
+   handle.addEventListener('pointercancel',done);
+   handle.addEventListener('lostpointercapture',done);
+  });
+  handle.addEventListener('keydown',e=>{
+   if(!['ArrowRight','ArrowLeft','ArrowDown','ArrowUp'].includes(e.key))return;
+   e.preventDefault();
+   const step=e.shiftKey?30:10;
+   note.x=card.offsetLeft;note.y=card.offsetTop;
+   note.z=++highestZ;card.style.zIndex=note.z;
+   setNoteSize(note,card,note.w+(e.key==='ArrowRight'?step:e.key==='ArrowLeft'?-step:0),note.h+(e.key==='ArrowDown'?step:e.key==='ArrowUp'?-step:0));
+   save();
+  });
+  grip.addEventListener('pointerdown',e=>{
+   if(e.button!==0&&e.pointerType==='mouse')return;e.preventDefault();
+   const sx=e.clientX,sy=e.clientY,px=card.offsetLeft,py=card.offsetTop;
+   note.z=++highestZ;card.style.zIndex=note.z;card.classList.add('dragging');
+   try{grip.setPointerCapture(e.pointerId);}catch(_){}
+   const move=ev=>{const maxX=Math.max(0,board.clientWidth-card.offsetWidth),maxY=Math.max(0,board.clientHeight-card.offsetHeight);note.x=Math.min(maxX,Math.max(0,Math.round(px+ev.clientX-sx)));note.y=Math.min(maxY,Math.max(0,Math.round(py+ev.clientY-sy)));card.style.left=note.x+'px';card.style.top=note.y+'px';};
+   const done=()=>{grip.removeEventListener('pointermove',move);grip.removeEventListener('pointerup',done);grip.removeEventListener('pointercancel',done);card.classList.remove('dragging');save();};
+   grip.addEventListener('pointermove',move);grip.addEventListener('pointerup',done);grip.addEventListener('pointercancel',done);
+  });
+ }
+ $('empty').style.display=state.notes.length?'none':'block';
+}
+function addNote(){
+ const idx=state.notes.length;const board=$('board');const viewportW=board.parentElement.clientWidth;
+ const cols=Math.max(1,Math.floor((viewportW-32)/254));
+ const width=Math.min(DEFAULT_W,Math.max(MIN_W,viewportW-32));
+ const maxX=Math.max(0,viewportW-width),maxY=Math.max(0,board.clientHeight-DEFAULT_H);
+ const note={id:'n'+Date.now()+'_'+Math.floor(Math.random()*1e6),title:'Nowa karteczka',text:'',color:COLORS[idx%COLORS.length],x:Math.min(maxX,25+(idx%cols)*254),y:Math.min(maxY,25+Math.floor(idx/cols)*212),z:++highestZ,w:width,h:DEFAULT_H};
+ state.notes.push(note);save();render();
+ const field=board.querySelector('.note[data-id="'+note.id+'"] .notetitle');if(field){field.focus();field.select();}
+}
+$('add').addEventListener('click',addNote);
+$('themeToggle').addEventListener('click',()=>{state.theme=state.theme==='dark'?'light':'dark';applyTheme();save();});
+function manualExport(text){$('jsontext').value=text;$('fallback').style.display='flex';}
+$('export').addEventListener('click',()=>{
+ const txt=JSON.stringify(state,null,2);
+ try{const blob=new Blob([txt],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='sticky-notes-backup.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);}catch(e){}
+ manualExport(txt);
+});
+$('import').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;
+ const reader=new FileReader();reader.onload=()=>{try{const obj=JSON.parse(String(reader.result));if(!obj||!Array.isArray(obj.notes))throw Error('Niepoprawny format danych');state=normalize(obj,state.theme);applyTheme();save();render();announce('Zaimportowano '+state.notes.length+' karteczek.');}catch(err){announce('Nie udało się zaimportować: '+String(err.message||err));}};
+ reader.onerror=()=>announce('Nie udało się odczytać pliku.');reader.readAsText(file);e.target.value='';
+});
+$('copyjson').addEventListener('click',async()=>{const ta=$('jsontext');ta.select();try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(ta.value);announce('Skopiowano dane.');}else{document.execCommand('copy');announce('Wykonano próbę kopiowania.');}}catch(e){announce('Użyj Ctrl+C do skopiowania zaznaczonego tekstu.');}});
+$('closemodal').addEventListener('click',()=>{$('fallback').style.display='none';});
+$('fallback').addEventListener('click',e=>{if(e.target===$('fallback'))$('fallback').style.display='none';});
+window.addEventListener('resize',()=>{syncBoardSize();const board=$('board');for(const card of board.querySelectorAll('.note')){const note=state.notes.find(n=>n.id===card.dataset.id);if(!note)continue;card.style.left=Math.min(note.x,Math.max(0,board.clientWidth-card.offsetWidth))+'px';card.style.top=Math.min(note.y,Math.max(0,board.clientHeight-card.offsetHeight))+'px';}});
+applyTheme();
+render();
+})();
+</script>
+</body>
+</html>

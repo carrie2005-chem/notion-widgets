@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Interaktywny układ okresowy</title>
+<style>
+:root{
+  --bg:#f5f9ff; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#dbeafe;
+  --blue:#2563eb; --blue2:#0ea5e9;
+  --s:#bfe3ff; --p:#ffd1d1; --d:#ccefc9; --f:#e4cef9;
+  --cell:72px; --gap:5px; --section-gap:14px; --page-pad:16px;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;width:100%;height:100%;
+  background:linear-gradient(135deg,#eff6ff,#f8fbff 45%,#eef8ff);
+  color:var(--ink);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  overflow:hidden;
+}
+body{padding:var(--page-pad)}
+.app{
+  width:100%;height:calc(100dvh - (2 * var(--page-pad)));max-width:1600px;margin:0 auto;
+  display:flex;flex-direction:column;min-height:0;gap:12px;
+}
+.toolbar{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin:0;padding:14px 16px;
+  background:linear-gradient(120deg,#0f4ccf,#178bd8);color:#fff;
+  border-radius:20px;box-shadow:0 14px 34px #2563eb20;
+}
+.switches{
+  display:inline-flex;padding:4px;background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.28);border-radius:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+  backdrop-filter:blur(6px);
+}
+.switches button{
+  border:0;background:transparent;color:rgba(255,255,255,.88);padding:9px 15px;border-radius:10px;
+  font-size:14px;font-weight:800;cursor:pointer;transition:.18s ease;white-space:nowrap;
+}
+.switches button:hover{color:#fff;background:rgba(255,255,255,.12)}
+.switches button.active{background:#fff;color:#1746a2;box-shadow:0 2px 8px rgba(15,76,207,.18)}
+.legend{
+  min-height:34px;display:flex;align-items:center;gap:9px;color:rgba(255,255,255,.92);
+  font-size:12px;flex-wrap:wrap;justify-content:flex-end;
+}
+.legend .chip{
+  display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:5px 8px;
+}
+.swatch{width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.09)}
+.gradient{
+  width:180px;height:11px;border-radius:999px;
+  background:linear-gradient(90deg,#2d6cdf 0%,#fff 50%,#dc3f45 100%);
+  border:1px solid rgba(255,255,255,.55);
+}
+.radius-key{position:relative;width:140px;height:26px}
+.radius-key .c{
+  position:absolute;bottom:2px;border:1px solid rgba(255,255,255,.9);
+  background:rgba(255,255,255,.2);border-radius:50%;transform:translateX(-50%);
+}
+.radius-key .c1{width:9px;height:9px;left:12%}
+.radius-key .c2{width:18px;height:18px;left:50%}
+.radius-key .c3{width:25px;height:25px;left:88%}
+.note{font-size:11px;color:rgba(255,255,255,.78)}
+
+.table-stage{
+  flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.94);border:1px solid #e6efff;border-radius:20px;
+  padding:12px;box-shadow:0 10px 30px #1e40af0d;overflow:hidden;
+}
+.table-wrap{
+  width:100%;height:100%;min-height:0;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.periodic{
+  display:grid;grid-template-columns:repeat(18,var(--cell));grid-template-rows:repeat(7,var(--cell));
+  gap:var(--gap);width:max-content;flex:0 0 auto;
+}
+.fblock{
+  display:grid;grid-template-columns:repeat(17,var(--cell));grid-template-rows:repeat(2,var(--cell));
+  gap:var(--gap);width:max-content;margin:var(--section-gap) auto 0;flex:0 0 auto;
+}
+
+.element,.placeholder{
+  position:relative;border:1px solid rgba(18,34,56,.14);border-radius:calc(var(--cell) * .14);
+  overflow:hidden;transition:transform .12s ease,box-shadow .12s ease,background .18s ease,color .18s ease,border-color .15s ease;
+}
+.element{
+  cursor:default;display:flex;align-items:center;justify-content:center;min-width:0;
+  box-shadow:0 2px 6px rgba(20,35,60,.06);outline:none;
+}
+.element:hover,.element:focus-visible{
+  transform:translateY(-2px) scale(1.055);z-index:30;
+  box-shadow:0 9px 24px rgba(30,64,175,.18);border-color:rgba(37,99,235,.35);
+}
+.element:focus-visible{box-shadow:0 0 0 3px rgba(37,99,235,.18),0 9px 24px rgba(30,64,175,.16)}
+.placeholder{
+  display:flex;align-items:center;justify-content:center;background:var(--f);color:#5b4a6b;
+  font-weight:800;font-size:calc(var(--cell) * .16);border-style:dashed;
+}
+.z{
+  position:absolute;left:calc(var(--cell) * .095);top:calc(var(--cell) * .075);
+  font-size:calc(var(--cell) * .135);font-weight:800;opacity:.72;line-height:1;
+}
+.symbol{font-size:calc(var(--cell) * .35);font-weight:800;line-height:1;letter-spacing:-.02em;position:relative;z-index:2}
+.value{
+  position:absolute;left:3px;right:3px;bottom:calc(var(--cell) * .07);text-align:center;
+  font-size:calc(var(--cell) * .115);font-weight:700;opacity:.8;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;z-index:2;
+}
+.radius-circle{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;
+  background:rgba(50,125,200,.15);border:1px solid rgba(50,125,200,.38);pointer-events:none;z-index:1;
+}
+.no-data::after{
+  content:"—";position:absolute;right:calc(var(--cell) * .08);top:calc(var(--cell) * .06);
+  font-weight:800;opacity:.45;font-size:calc(var(--cell) * .14);
+}
+
+/* Karta pierwiastka */
+.tooltip{
+  --card-accent:#9eb8d6;--card-accent-soft:#eef4fb;
+  position:fixed;z-index:1000;pointer-events:none;width:min(310px,calc(100vw - 24px));
+  background:rgba(255,255,255,.99);color:#172033;border:1px solid #dbeafe;
+  border-radius:18px;box-shadow:0 18px 48px rgba(30,64,175,.20);
+  opacity:0;transform:translateY(5px) scale(.985);transition:opacity .11s ease,transform .11s ease;
+  overflow:hidden;visibility:hidden;
+}
+.tooltip.show{opacity:1;transform:none;visibility:visible}
+.card-head{
+  display:flex;align-items:center;gap:12px;padding:13px 14px;
+  background:linear-gradient(135deg,var(--card-accent-soft),#fff 75%);border-bottom:1px solid #e6efff;
+}
+.card-symbol{
+  width:58px;height:58px;border-radius:15px;display:flex;align-items:center;justify-content:center;
+  background:var(--card-accent);font-size:30px;font-weight:900;letter-spacing:-.04em;
+  box-shadow:inset 0 0 0 1px rgba(23,32,51,.08);
+}
+.card-heading{min-width:0;flex:1}
+.card-kicker{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#788399;margin-bottom:2px}
+.card-title{font-size:19px;font-weight:850;line-height:1.12}
+.card-z{font-size:12px;color:#697386;margin-top:3px}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:11px}
+.metric{background:#f7faff;border:1px solid #e5efff;border-radius:11px;padding:9px 10px;min-width:0}
+.metric-label{display:block;font-size:10px;font-weight:800;color:#7a8598;text-transform:uppercase;letter-spacing:.045em;margin-bottom:3px}
+.metric-value{display:block;font-size:13px;font-weight:800;color:#1f2b3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 12px 11px;color:#748095;font-size:11px}
+.block-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 7px;border-radius:999px;background:var(--card-accent-soft);color:#435066;font-weight:800}
+.block-dot{width:8px;height:8px;border-radius:50%;background:var(--card-accent)}
+
+@media (max-width:760px){
+  :root{--page-pad:8px;--section-gap:10px}
+  html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
+  body{padding:var(--page-pad)}
+  .app{height:auto;min-height:100dvh;max-width:none;display:block}
+  .toolbar{
+    gap:8px;margin:0 0 10px;padding:12px;border-radius:18px;
+  }
+  .switches{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}
+  .switches button{padding:9px 5px;font-size:11px;min-width:0}
+  .legend{width:100%;justify-content:flex-start;font-size:10px;gap:6px;min-height:24px}
+  .legend .chip{padding:4px 7px}
+  .gradient{width:116px}
+  .radius-key{width:110px}
+
+  .table-stage{
+    display:block;width:100%;min-height:0;padding:10px;
+    overflow-x:auto;overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+    scrollbar-width:thin;
+    scrollbar-color:#93c5fd #eff6ff;
+  }
+  .table-stage::-webkit-scrollbar{height:9px}
+  .table-stage::-webkit-scrollbar-track{background:#eff6ff;border-radius:999px}
+  .table-stage::-webkit-scrollbar-thumb{background:#93c5fd;border-radius:999px;border:2px solid #eff6ff}
+
+  .table-wrap{
+    width:max-content;height:auto;min-width:max-content;min-height:0;overflow:visible;
+    display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;
+    padding:2px 2px 8px;
+  }
+  .periodic,.fblock{flex:none}
+  .element:hover{transform:none}
+  .tooltip{width:min(290px,calc(100vw - 20px))}
+}
+
+@media (max-width:430px){
+  .toolbar{padding:10px}
+  .switches button{font-size:10px}
+  .legend{font-size:9.5px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="toolbar">
+    <div class="switches" role="tablist" aria-label="Widok układu okresowego">
+      <button class="active" data-mode="default" role="tab" aria-selected="true">Domyślny</button>
+      <button data-mode="en" role="tab" aria-selected="false">Elektroujemność</button>
+      <button data-mode="radius" role="tab" aria-selected="false">Promień atomowy</button>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="table-stage">
+    <div class="table-wrap" id="tableWrap">
+      <div class="periodic" id="periodic"></div>
+      <div class="fblock" id="fblock"></div>
+    </div>
+  </div>
+</div>
+<div class="tooltip" id="tooltip" role="tooltip"></div>
+
+<script>
+const DATA=[{"z":1,"s":"H","m":"1.008","en":2.2,"r":37,"b":"s","row":1,"col":1,"frow":null,"fcol":null},{"z":2,"s":"He","m":"4.0026","en":null,"r":32,"b":"s","row":1,"col":18,"frow":null,"fcol":null},{"z":3,"s":"Li","m":"6.94","en":0.98,"r":134,"b":"s","row":2,"col":1,"frow":null,"fcol":null},{"z":4,"s":"Be","m":"9.0122","en":1.57,"r":90,"b":"s","row":2,"col":2,"frow":null,"fcol":null},{"z":5,"s":"B","m":"10.81","en":2.04,"r":82,"b":"p","row":2,"col":13,"frow":null,"fcol":null},{"z":6,"s":"C","m":"12.011","en":2.55,"r":77,"b":"p","row":2,"col":14,"frow":null,"fcol":null},{"z":7,"s":"N","m":"14.007","en":3.04,"r":75,"b":"p","row":2,"col":15,"frow":null,"fcol":null},{"z":8,"s":"O","m":"15.999","en":3.44,"r":73,"b":"p","row":2,"col":16,"frow":null,"fcol":null},{"z":9,"s":"F","m":"18.998","en":3.98,"r":71,"b":"p","row":2,"col":17,"frow":null,"fcol":null},{"z":10,"s":"Ne","m":"20.180","en":null,"r":69,"b":"p","row":2,"col":18,"frow":null,"fcol":null},{"z":11,"s":"Na","m":"22.990","en":0.93,"r":154,"b":"s","row":3,"col":1,"frow":null,"fcol":null},{"z":12,"s":"Mg","m":"24.305","en":1.31,"r":130,"b":"s","row":3,"col":2,"frow":null,"fcol":null},{"z":13,"s":"Al","m":"26.982","en":1.61,"r":118,"b":"p","row":3,"col":13,"frow":null,"fcol":null},{"z":14,"s":"Si","m":"28.085","en":1.9,"r":111,"b":"p","row":3,"col":14,"frow":null,"fcol":null},{"z":15,"s":"P","m":"30.974","en":2.19,"r":106,"b":"p","row":3,"col":15,"frow":null,"fcol":null},{"z":16,"s":"S","m":"32.06","en":2.58,"r":102,"b":"p","row":3,"col":16,"frow":null,"fcol":null},{"z":17,"s":"Cl","m":"35.45","en":3.16,"r":99,"b":"p","row":3,"col":17,"frow":null,"fcol":null},{"z":18,"s":"Ar","m":"39.948","en":null,"r":97,"b":"p","row":3,"col":18,"frow":null,"fcol":null},{"z":19,"s":"K","m":"39.0983","en":0.82,"r":196,"b":"s","row":4,"col":1,"frow":null,"fcol":null},{"z":20,"s":"Ca","m":"40.078","en":1.0,"r":174,"b":"s","row":4,"col":2,"frow":null,"fcol":null},{"z":21,"s":"Sc","m":"44.956","en":1.36,"r":144,"b":"d","row":4,"col":3,"frow":null,"fcol":null},{"z":22,"s":"Ti","m":"47.867","en":1.54,"r":136,"b":"d","row":4,"col":4,"frow":null,"fcol":null},{"z":23,"s":"V","m":"50.942","en":1.63,"r":125,"b":"d","row":4,"col":5,"frow":null,"fcol":null},{"z":24,"s":"Cr","m":"51.996","en":1.66,"r":127,"b":"d","row":4,"col":6,"frow":null,"fcol":null},{"z":25,"s":"Mn","m":"54.938","en":1.55,"r":139,"b":"d","row":4,"col":7,"frow":null,"fcol":null},{"z":26,"s":"Fe","m":"55.845","en":1.83,"r":125,"b":"d","row":4,"col":8,"frow":null,"fcol":null},{"z":27,"s":"Co","m":"58.933","en":1.88,"r":126,"b":"d","row":4,"col":9,"frow":null,"fcol":null},{"z":28,"s":"Ni","m":"58.693","en":1.91,"r":121,"b":"d","row":4,"col":10,"frow":null,"fcol":null},{"z":29,"s":"Cu","m":"63.546","en":1.9,"r":138,"b":"d","row":4,"col":11,"frow":null,"fcol":null},{"z":30,"s":"Zn","m":"65.38","en":1.65,"r":131,"b":"d","row":4,"col":12,"frow":null,"fcol":null},{"z":31,"s":"Ga","m":"69.723","en":1.81,"r":126,"b":"p","row":4,"col":13,"frow":null,"fcol":null},{"z":32,"s":"Ge","m":"72.630","en":2.01,"r":122,"b":"p","row":4,"col":14,"frow":null,"fcol":null},{"z":33,"s":"As","m":"74.922","en":2.18,"r":119,"b":"p","row":4,"col":15,"frow":null,"fcol":null},{"z":34,"s":"Se","m":"78.971","en":2.55,"r":116,"b":"p","row":4,"col":16,"frow":null,"fcol":null},{"z":35,"s":"Br","m":"79.904","en":2.96,"r":114,"b":"p","row":4,"col":17,"frow":null,"fcol":null},{"z":36,"s":"Kr","m":"83.798","en":null,"r":110,"b":"p","row":4,"col":18,"frow":null,"fcol":null},{"z":37,"s":"Rb","m":"85.468","en":0.82,"r":211,"b":"s","row":5,"col":1,"frow":null,"fcol":null},{"z":38,"s":"Sr","m":"87.62","en":0.95,"r":192,"b":"s","row":5,"col":2,"frow":null,"fcol":null},{"z":39,"s":"Y","m":"88.906","en":1.22,"r":162,"b":"d","row":5,"col":3,"frow":null,"fcol":null},{"z":40,"s":"Zr","m":"91.224","en":1.33,"r":148,"b":"d","row":5,"col":4,"frow":null,"fcol":null},{"z":41,"s":"Nb","m":"92.906","en":1.6,"r":137,"b":"d","row":5,"col":5,"frow":null,"fcol":null},{"z":42,"s":"Mo","m":"95.95","en":2.16,"r":145,"b":"d","row":5,"col":6,"frow":null,"fcol":null},{"z":43,"s":"Tc","m":"[98]","en":1.9,"r":156,"b":"d","row":5,"col":7,"frow":null,"fcol":null},{"z":44,"s":"Ru","m":"101.07","en":2.2,"r":126,"b":"d","row":5,"col":8,"frow":null,"fcol":null},{"z":45,"s":"Rh","m":"102.91","en":2.28,"r":135,"b":"d","row":5,"col":9,"frow":null,"fcol":null},{"z":46,"s":"Pd","m":"106.42","en":2.2,"r":131,"b":"d","row":5,"col":10,"frow":null,"fcol":null},{"z":47,"s":"Ag","m":"107.87","en":1.93,"r":153,"b":"d","row":5,"col":11,"frow":null,"fcol":null},{"z":48,"s":"Cd","m":"112.41","en":1.69,"r":148,"b":"d","row":5,"col":12,"frow":null,"fcol":null},{"z":49,"s":"In","m":"114.82","en":1.78,"r":144,"b":"p","row":5,"col":13,"frow":null,"fcol":null},{"z":50,"s":"Sn","m":"118.71","en":1.96,"r":141,"b":"p","row":5,"col":14,"frow":null,"fcol":null},{"z":51,"s":"Sb","m":"121.76","en":2.05,"r":138,"b":"p","row":5,"col":15,"frow":null,"fcol":null},{"z":52,"s":"Te","m":"127.60","en":2.1,"r":135,"b":"p","row":5,"col":16,"frow":null,"fcol":null},{"z":53,"s":"I","m":"126.90","en":2.66,"r":133,"b":"p","row":5,"col":17,"frow":null,"fcol":null},{"z":54,"s":"Xe","m":"131.29","en":null,"r":130,"b":"p","row":5,"col":18,"frow":null,"fcol":null},{"z":55,"s":"Cs","m":"132.91","en":0.79,"r":225,"b":"s","row":6,"col":1,"frow":null,"fcol":null},{"z":56,"s":"Ba","m":"137.33","en":0.89,"r":198,"b":"s","row":6,"col":2,"frow":null,"fcol":null},{"z":57,"s":"La","m":"138.91","en":1.1,"r":169,"b":"f","row":null,"col":null,"frow":1,"fcol":3},{"z":58,"s":"Ce","m":"140.12","en":1.12,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":4},{"z":59,"s":"Pr","m":"140.91","en":1.13,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":5},{"z":60,"s":"Nd","m":"144.24","en":1.14,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":6},{"z":61,"s":"Pm","m":"[145]","en":1.13,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":7},{"z":62,"s":"Sm","m":"150.36","en":1.17,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":8},{"z":63,"s":"Eu","m":"151.96","en":1.2,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":9},{"z":64,"s":"Gd","m":"157.25","en":1.2,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":10},{"z":65,"s":"Tb","m":"158.93","en":1.2,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":11},{"z":66,"s":"Dy","m":"162.50","en":1.22,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":12},{"z":67,"s":"Ho","m":"164.93","en":1.23,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":13},{"z":68,"s":"Er","m":"167.26","en":1.24,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":14},{"z":69,"s":"Tm","m":"168.93","en":1.25,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":15},{"z":70,"s":"Yb","m":"173.05","en":1.1,"r":null,"b":"f","row":null,"col":null,"frow":1,"fcol":16},{"z":71,"s":"Lu","m":"174.97","en":1.27,"r":160,"b":"f","row":null,"col":null,"frow":1,"fcol":17},{"z":72,"s":"Hf","m":"178.49","en":1.3,"r":150,"b":"d","row":6,"col":4,"frow":null,"fcol":null},{"z":73,"s":"Ta","m":"180.95","en":1.5,"r":138,"b":"d","row":6,"col":5,"frow":null,"fcol":null},{"z":74,"s":"W","m":"183.84","en":2.36,"r":146,"b":"d","row":6,"col":6,"frow":null,"fcol":null},{"z":75,"s":"Re","m":"186.21","en":1.9,"r":159,"b":"d","row":6,"col":7,"frow":null,"fcol":null},{"z":76,"s":"Os","m":"190.23","en":2.2,"r":128,"b":"d","row":6,"col":8,"frow":null,"fcol":null},{"z":77,"s":"Ir","m":"192.22","en":2.2,"r":137,"b":"d","row":6,"col":9,"frow":null,"fcol":null},{"z":78,"s":"Pt","m":"195.08","en":2.28,"r":128,"b":"d","row":6,"col":10,"frow":null,"fcol":null},{"z":79,"s":"Au","m":"196.97","en":2.54,"r":144,"b":"d","row":6,"col":11,"frow":null,"fcol":null},{"z":80,"s":"Hg","m":"200.59","en":2.0,"r":149,"b":"d","row":6,"col":12,"frow":null,"fcol":null},{"z":81,"s":"Tl","m":"204.38","en":2.04,"r":148,"b":"p","row":6,"col":13,"frow":null,"fcol":null},{"z":82,"s":"Pb","m":"207.2","en":2.33,"r":147,"b":"p","row":6,"col":14,"frow":null,"fcol":null},{"z":83,"s":"Bi","m":"208.98","en":2.02,"r":146,"b":"p","row":6,"col":15,"frow":null,"fcol":null},{"z":84,"s":"Po","m":"[209]","en":2.0,"r":null,"b":"p","row":6,"col":16,"frow":null,"fcol":null},{"z":85,"s":"At","m":"[210]","en":2.2,"r":null,"b":"p","row":6,"col":17,"frow":null,"fcol":null},{"z":86,"s":"Rn","m":"[222]","en":null,"r":145,"b":"p","row":6,"col":18,"frow":null,"fcol":null},{"z":87,"s":"Fr","m":"[223]","en":0.7,"r":null,"b":"s","row":7,"col":1,"frow":null,"fcol":null},{"z":88,"s":"Ra","m":"[226]","en":0.9,"r":null,"b":"s","row":7,"col":2,"frow":null,"fcol":null},{"z":89,"s":"Ac","m":"[227]","en":1.1,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":3},{"z":90,"s":"Th","m":"232.04","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":4},{"z":91,"s":"Pa","m":"231.04","en":1.5,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":5},{"z":92,"s":"U","m":"238.03","en":1.38,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":6},{"z":93,"s":"Np","m":"[237]","en":1.36,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":7},{"z":94,"s":"Pu","m":"[244]","en":1.28,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":8},{"z":95,"s":"Am","m":"[243]","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":9},{"z":96,"s":"Cm","m":"[247]","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":10},{"z":97,"s":"Bk","m":"[247]","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":11},{"z":98,"s":"Cf","m":"[251]","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":12},{"z":99,"s":"Es","m":"[252]","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":13},{"z":100,"s":"Fm","m":"[257]","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":14},{"z":101,"s":"Md","m":"[258]","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":15},{"z":102,"s":"No","m":"[259]","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":16},{"z":103,"s":"Lr","m":"[266]","en":1.3,"r":null,"b":"f","row":null,"col":null,"frow":2,"fcol":17},{"z":104,"s":"Rf","m":"[267]","en":null,"r":null,"b":"d","row":7,"col":4,"frow":null,"fcol":null},{"z":105,"s":"Db","m":"[268]","en":null,"r":null,"b":"d","row":7,"col":5,"frow":null,"fcol":null},{"z":106,"s":"Sg","m":"[269]","en":null,"r":null,"b":"d","row":7,"col":6,"frow":null,"fcol":null},{"z":107,"s":"Bh","m":"[270]","en":null,"r":null,"b":"d","row":7,"col":7,"frow":null,"fcol":null},{"z":108,"s":"Hs","m":"[269]","en":null,"r":null,"b":"d","row":7,"col":8,"frow":null,"fcol":null},{"z":109,"s":"Mt","m":"[277]","en":null,"r":null,"b":"d","row":7,"col":9,"frow":null,"fcol":null},{"z":110,"s":"Ds","m":"[281]","en":null,"r":null,"b":"d","row":7,"col":10,"frow":null,"fcol":null},{"z":111,"s":"Rg","m":"[282]","en":null,"r":null,"b":"d","row":7,"col":11,"frow":null,"fcol":null},{"z":112,"s":"Cn","m":"[285]","en":null,"r":null,"b":"d","row":7,"col":12,"frow":null,"fcol":null},{"z":113,"s":"Nh","m":"[286]","en":null,"r":null,"b":"p","row":7,"col":13,"frow":null,"fcol":null},{"z":114,"s":"Fl","m":"[290]","en":null,"r":null,"b":"p","row":7,"col":14,"frow":null,"fcol":null},{"z":115,"s":"Mc","m":"[290]","en":null,"r":null,"b":"p","row":7,"col":15,"frow":null,"fcol":null},{"z":116,"s":"Lv","m":"[293]","en":null,"r":null,"b":"p","row":7,"col":16,"frow":null,"fcol":null},{"z":117,"s":"Ts","m":"[294]","en":null,"r":null,"b":"p","row":7,"col":17,"frow":null,"fcol":null},{"z":118,"s":"Og","m":"[294]","en":null,"r":null,"b":"p","row":7,"col":18,"frow":null,"fcol":null}];
+let mode="default";
+const root=document.documentElement;
+const periodic=document.getElementById("periodic");
+const fblock=document.getElementById("fblock");
+const legend=document.getElementById("legend");
+const tooltip=document.getElementById("tooltip");
+const tableWrap=document.getElementById("tableWrap");
+
+const BLOCK_COLORS={s:"var(--s)",p:"var(--p)",d:"var(--d)",f:"var(--f)"};
+const CARD_COLORS={
+  s:{accent:"#bfe3ff",soft:"#edf8ff"},
+  p:{accent:"#ffd1d1",soft:"#fff1f1"},
+  d:{accent:"#ccefc9",soft:"#effbed"},
+  f:{accent:"#e4cef9",soft:"#f7efff"}
+};
+
+function mix(a,b,t){
+  return a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+}
+function enColor(v){
+  const min=.70, mid=2.34, max=3.98;
+  const blue=[45,108,223], white=[255,255,255], red=[220,63,69];
+  let rgb;
+  if(v<=mid) rgb=mix(blue,white,Math.max(0,Math.min(1,(v-min)/(mid-min))));
+  else rgb=mix(white,red,Math.max(0,Math.min(1,(v-mid)/(max-mid))));
+  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+}
+function textColor(bg){
+  const m=bg.match(/\d+/g); if(!m) return "#172033";
+  const [r,g,b]=m.map(Number);
+  const lum=(.2126*r+.7152*g+.0722*b)/255;
+  return lum<.57 ? "#fff" : "#172033";
+}
+function cellHTML(e){
+  let val="";
+  if(mode==="default") val=e.m;
+  if(mode==="en") val=e.en==null ? "brak danych" : `χ = ${e.en.toFixed(2)}`;
+  if(mode==="radius") val=e.r==null ? "brak danych" : `${e.r} pm`;
+  return `<span class="z">${e.z}</span><span class="symbol">${e.s}</span><span class="value">${val}</span>`;
+}
+function applyStyle(el,e){
+  el.classList.toggle("no-data",(mode==="en"&&e.en==null)||(mode==="radius"&&e.r==null));
+  el.style.color="#172033";
+  el.style.background="#fff";
+  el.querySelectorAll(".radius-circle").forEach(x=>x.remove());
+
+  if(mode==="default"){
+    el.style.background=BLOCK_COLORS[e.b];
+  } else if(mode==="en"){
+    if(e.en==null){
+      el.style.background="#edf0f4"; el.style.color="#788399";
+    } else {
+      const bg=enColor(e.en); el.style.background=bg; el.style.color=textColor(bg);
+    }
+  } else {
+    el.style.background="#fbfcfe";
+    if(e.r!=null){
+      const d=14 + (e.r-32)/(225-32)*46;
+      const cell=parseFloat(getComputedStyle(root).getPropertyValue("--cell"))||72;
+      const scaled=Math.max(5, d*(cell/72));
+      const c=document.createElement("span");
+      c.className="radius-circle"; c.style.width=scaled+"px"; c.style.height=scaled+"px";
+      el.appendChild(c);
+    } else el.style.color="#8791a2";
+  }
+}
+function tooltipHTML(e){
+  const en=e.en==null?"—":e.en.toFixed(2);
+  const r=e.r==null?"—":e.r+" pm";
+  const block=e.b.toUpperCase();
+  return `
+    <div class="card-head">
+      <div class="card-symbol">${e.s}</div>
+      <div class="card-heading">
+        <div class="card-kicker">Pierwiastek</div>
+        <div class="card-title">${e.s}</div>
+        <div class="card-z">Liczba atomowa Z = ${e.z}</div>
+      </div>
+    </div>
+    <div class="card-grid">
+      <div class="metric">
+        <span class="metric-label">Masa atomowa</span>
+        <span class="metric-value">${e.m} u</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Elektroujemność</span>
+        <span class="metric-value">${en}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Promień atomowy</span>
+        <span class="metric-value">${r}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Blok</span>
+        <span class="metric-value">${block}</span>
+      </div>
+    </div>
+    <div class="card-foot">
+      <span>Skala Paulinga · promień w pm</span>
+      <span class="block-pill"><i class="block-dot"></i>blok ${e.b}</span>
+    </div>`;
+}
+function positionTooltip(el){
+  const card=tooltip.getBoundingClientRect();
+  const r=el.getBoundingClientRect();
+  const pad=10, offset=12;
+  let x=r.right+offset;
+  let y=r.top+(r.height-card.height)/2;
+
+  if(x+card.width>window.innerWidth-pad) x=r.left-card.width-offset;
+  if(x<pad) x=Math.min(window.innerWidth-card.width-pad,Math.max(pad,r.left+(r.width-card.width)/2));
+  y=Math.max(pad,Math.min(y,window.innerHeight-card.height-pad));
+
+  tooltip.style.left=Math.round(x)+"px";
+  tooltip.style.top=Math.round(y)+"px";
+}
+function showTooltip(el,e){
+  const colors=CARD_COLORS[e.b];
+  tooltip.style.setProperty("--card-accent",colors.accent);
+  tooltip.style.setProperty("--card-accent-soft",colors.soft);
+  tooltip.innerHTML=tooltipHTML(e);
+  tooltip.classList.add("show");
+  requestAnimationFrame(()=>positionTooltip(el));
+}
+function hideTooltip(){
+  tooltip.classList.remove("show");
+}
+function bindTooltip(el,e){
+  el.addEventListener("mouseenter",()=>showTooltip(el,e));
+  el.addEventListener("mouseleave",hideTooltip);
+  el.addEventListener("focus",()=>showTooltip(el,e));
+  el.addEventListener("blur",hideTooltip);
+}
+function makeElement(e,target){
+  const el=document.createElement("div");
+  el.className="element"; el.dataset.z=e.z; el.innerHTML=cellHTML(e);
+  el.tabIndex=0;
+  el.setAttribute("aria-label",`${e.s}, liczba atomowa ${e.z}`);
+  if(target==="main"){el.style.gridRow=e.row;el.style.gridColumn=e.col;}
+  else {el.style.gridRow=e.frow;el.style.gridColumn=e.fcol;}
+  applyStyle(el,e); bindTooltip(el,e); return el;
+}
+function render(){
+  hideTooltip();
+  periodic.innerHTML=""; fblock.innerHTML="";
+  DATA.filter(e=>e.row).forEach(e=>periodic.appendChild(makeElement(e,"main")));
+
+  for(const p of [{row:6,col:3,label:"57–71"},{row:7,col:3,label:"89–103"}]){
+    const x=document.createElement("div");x.className="placeholder";x.textContent=p.label;x.style.gridRow=p.row;x.style.gridColumn=p.col;periodic.appendChild(x);
+  }
+  DATA.filter(e=>e.frow).forEach(e=>fblock.appendChild(makeElement(e,"f")));
+
+  if(mode==="default"){
+    legend.innerHTML=`
+      <span class="chip"><span class="swatch" style="background:var(--s)"></span>blok s</span>
+      <span class="chip"><span class="swatch" style="background:var(--p)"></span>blok p</span>
+      <span class="chip"><span class="swatch" style="background:var(--d)"></span>blok d</span>
+      <span class="chip"><span class="swatch" style="background:var(--f)"></span>blok f</span>`;
+  } else if(mode==="en"){
+    legend.innerHTML=`<span>0,70</span><span class="gradient"></span><span>3,98</span><span class="note">— = brak wartości</span>`;
+  } else {
+    legend.innerHTML=`<span>mniejszy</span><span class="radius-key"><i class="c c1"></i><i class="c c2"></i><i class="c c3"></i></span><span>większy</span><span class="note">pm · — = brak wartości</span>`;
+  }
+  requestAnimationFrame(fitLayout);
+}
+function fitLayout(){
+  const mobile=window.matchMedia("(max-width:760px)").matches;
+
+  if(mobile){
+    // Na telefonie zachowujemy czytelny rozmiar komórek i przewijamy tabelę w poziomie.
+    const cell=Math.max(54,Math.min(62,window.innerWidth*.15));
+    root.style.setProperty("--cell",cell+"px");
+    root.style.setProperty("--gap","4px");
+    root.style.setProperty("--section-gap","10px");
+  } else {
+    // Na komputerze cały układ ma zawsze zmieścić się w dostępnym widoku.
+    const rect=tableWrap.getBoundingClientRect();
+    if(rect.width<=0||rect.height<=0) return;
+
+    const gap=Math.max(1.5,Math.min(5,rect.width/300));
+    const sectionGap=Math.max(6,Math.min(14,rect.height*.025));
+
+    // 18 kolumn w części głównej, 9 rzędów łącznie (7 + 2).
+    const cellByWidth=(rect.width-(17*gap))/18;
+    const cellByHeight=(rect.height-sectionGap-(7*gap))/9;
+    const cell=Math.max(8,Math.min(76,cellByWidth,cellByHeight));
+
+    root.style.setProperty("--cell",cell+"px");
+    root.style.setProperty("--gap",gap+"px");
+    root.style.setProperty("--section-gap",sectionGap+"px");
+  }
+
+  // Okręgi promieni są tworzone z uwzględnieniem aktualnego rozmiaru komórki.
+  if(mode==="radius"){
+    document.querySelectorAll(".element").forEach(el=>{
+      const e=DATA.find(x=>x.z===Number(el.dataset.z));
+      if(e) applyStyle(el,e);
+    });
+  }
+}
+document.querySelectorAll(".switches button").forEach(btn=>btn.addEventListener("click",()=>{
+  mode=btn.dataset.mode;
+  document.querySelectorAll(".switches button").forEach(b=>{b.classList.toggle("active",b===btn);b.setAttribute("aria-selected",b===btn?"true":"false")});
+  render();
+}));
+
+window.addEventListener("resize",()=>{hideTooltip();fitLayout();});
+if("ResizeObserver" in window){
+  new ResizeObserver(()=>fitLayout()).observe(tableWrap);
+}
+render();
+</script>
+</body>
+</html>

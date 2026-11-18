@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <title>Zegar do Notion</title>
+  <title>Zegar i pozostały czas — Notion</title>
   <style>
     :root {
       color-scheme: light;
@@ -15,8 +15,9 @@
       --button-bg: #f0f1f4;
       --button-hover: #e6e8ee;
       --focus: #4469d4;
+      --panel: #ffffff;
+      --panel-shadow: 0 12px 34px rgba(27,31,43,.13);
     }
-
     :root[data-theme="dark"] {
       color-scheme: dark;
       --bg: #1b1e26;
@@ -26,24 +27,26 @@
       --button-bg: #2d323d;
       --button-hover: #3a414e;
       --focus: #a2b7ff;
+      --panel: #252a34;
+      --panel-shadow: 0 12px 34px rgba(0,0,0,.35);
     }
-
     * { box-sizing: border-box; }
     html, body { margin: 0; width: 100%; min-height: 100%; }
     body {
       background: transparent;
       font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     }
+    button, input { font: inherit; }
     .widget {
       width: 100%;
-      min-height: 174px;
       height: 100vh;
+      min-height: 174px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       position: relative;
-      padding: 48px 14px 22px;
+      padding: 48px 14px 24px;
       overflow: hidden;
       background: var(--bg);
       color: var(--fg);
@@ -63,25 +66,78 @@
       border-radius: 9px;
       background: var(--button-bg);
       color: var(--muted);
-      font: inherit;
       font-size: 11px;
       line-height: 1.3;
       cursor: pointer;
       transition: background-color .18s ease, color .18s ease;
     }
     .theme-toggle:hover { background: var(--button-hover); color: var(--fg); }
-    .theme-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-    .theme-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+    .theme-toggle svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .time-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(12px, 3.1vw, 22px);
+      max-width: 100%;
+    }
     .clock {
-      font-size: clamp(34px, 10vw, 68px);
+      font-size: clamp(30px, 9.5vw, 58px);
       font-weight: 650;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
       line-height: 1.1;
       letter-spacing: -.055em;
       white-space: nowrap;
-      text-align: center;
     }
+    .countdown {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 5px;
+      flex: 0 0 auto;
+      min-width: 105px;
+      text-align: left;
+      cursor: pointer;
+      color: var(--fg);
+      background: var(--button-bg);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 8px 10px;
+      transition: background-color .18s ease, border-color .18s ease;
+    }
+    .countdown:hover { background: var(--button-hover); border-color: var(--line); }
+    .countdown-label {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 500;
+      white-space: nowrap;
+      line-height: 1;
+    }
+    .countdown-label svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
+    .countdown-value {
+      font-size: clamp(12px, 3.1vw, 17px);
+      font-weight: 650;
+      line-height: 1.1;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -.025em;
+    }
+    .countdown-value .unit { font-size: .67em; font-weight: 500; color: var(--muted); letter-spacing: 0; }
     .date {
       margin-top: 8px;
       font-size: clamp(11px, 2.8vw, 14px);
@@ -89,22 +145,105 @@
       text-align: center;
       color: var(--muted);
     }
+    .editor-layer {
+      position: absolute;
+      z-index: 5;
+      inset: 0;
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(14,17,23,.25);
+    }
+    .editor-layer[hidden] { display: none; }
+    .editor {
+      background: var(--panel);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 13px 14px;
+      width: min(330px, 100%);
+      box-shadow: var(--panel-shadow);
+    }
+    .editor-heading { font-size: 12px; font-weight: 650; margin: 0 0 9px; }
+    .editor-row { display: flex; align-items: center; gap: 8px; }
+    .time-input {
+      min-width: 0;
+      flex: 1;
+      background: var(--bg);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      height: 34px;
+      padding: 5px 8px;
+      font-size: 14px;
+      color-scheme: inherit;
+    }
+    .save-button {
+      flex: 0 0 auto;
+      height: 34px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 12px;
+      background: var(--fg);
+      color: var(--bg);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .editor-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 10px; }
+    .text-button { background: none; border: 0; color: var(--muted); font-size: 10px; padding: 3px 0; cursor: pointer; }
+    .text-button:hover { color: var(--fg); text-decoration: underline; }
+    .error { color: #c84f48; font-size: 10px; margin: 3px 0 0; min-height: 0; }
+    .error:empty { display: none; }
+    @media (max-width: 335px) {
+      .widget { padding-inline: 8px; }
+      .time-row { gap: 8px; }
+      .clock { font-size: clamp(25px, 9.25vw, 32px); }
+      .countdown { min-width: 92px; padding: 7px 8px; }
+      .countdown-value { font-size: 12px; }
+    }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition: none !important; }
     }
   </style>
 </head>
 <body>
-  <main class="widget" aria-label="Zegar pokazujący aktualny czas urządzenia">
+  <main class="widget" aria-label="Zegar i licznik czasu do wybranej godziny">
     <button class="theme-toggle" id="themeToggle" type="button" aria-label="Włącz motyw ciemny">
       <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M20.8 13.1A8.5 8.5 0 0 1 10.9 3.2 8.5 8.5 0 1 0 20.8 13.1Z"/>
       </svg>
       <span id="themeLabel">Ciemny</span>
     </button>
-    <div class="clock" id="clock" role="timer" aria-live="off">--:--:--</div>
+
+    <div class="time-row">
+      <div class="clock" id="clock" role="timer" aria-live="off">--:--:--</div>
+      <button class="countdown" id="countdownButton" type="button" aria-label="Zmień godzinę, do której odliczamy" aria-haspopup="dialog" aria-expanded="false" title="Kliknij, aby zmienić godzinę końcową">
+        <span class="countdown-label">Do <span id="targetLabel">22:00</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.7-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.7 16 4 20Z"/></svg>
+        </span>
+        <span class="countdown-value"><span id="hoursLeft">--</span><span class="unit"> godz. </span><span id="minutesLeft">--</span><span class="unit"> min</span></span>
+      </button>
+    </div>
     <div class="date" id="date">Ładowanie daty…</div>
+
+    <div class="editor-layer" id="editorLayer" hidden>
+      <form class="editor" id="editor" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+        <div class="editor-heading" id="editorTitle">Odliczaj do godziny</div>
+        <div class="editor-row">
+          <input class="time-input" id="targetInput" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="5" placeholder="GG:MM" required aria-label="Godzina końcowa, format GG:MM">
+          <button class="save-button" type="submit">Ustaw</button>
+        </div>
+        <div class="error" id="timeError" role="status"></div>
+        <div class="editor-bottom">
+          <button class="text-button" id="resetTarget" type="button">Domyślnie: 22:00</button>
+          <button class="text-button" id="cancelEdit" type="button">Anuluj</button>
+        </div>
+      </form>
+    </div>
   </main>
+
   <script>
     (() => {
       'use strict';
@@ -112,49 +251,139 @@
       const clock = document.getElementById('clock');
       const date = document.getElementById('date');
       const toggle = document.getElementById('themeToggle');
-      const label = document.getElementById('themeLabel');
+      const themeLabel = document.getElementById('themeLabel');
       const icon = document.getElementById('themeIcon');
-      const storageKey = 'notion-clock-theme-v1';
-      const timeFormatter = new Intl.DateTimeFormat('pl-PL', {
+      const targetLabel = document.getElementById('targetLabel');
+      const hoursLeft = document.getElementById('hoursLeft');
+      const minutesLeft = document.getElementById('minutesLeft');
+      const countdownButton = document.getElementById('countdownButton');
+      const editorLayer = document.getElementById('editorLayer');
+      const form = document.getElementById('editor');
+      const input = document.getElementById('targetInput');
+      const timeError = document.getElementById('timeError');
+      const reset = document.getElementById('resetTarget');
+      const cancel = document.getElementById('cancelEdit');
+      const themeStorageKey = 'notion-clock-theme-v1'; // same as the previous version
+      const targetStorageKey = 'notion-clock-target-v1';
+      const formatter = new Intl.DateTimeFormat('pl-PL', {
         hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
       });
       const dateFormatter = new Intl.DateTimeFormat('pl-PL', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
       });
+      const pad = value => String(value).padStart(2, '0');
+      const todayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const safeLoad = key => { try { return localStorage.getItem(key); } catch (_) { return null; } };
+      const safeSave = (key, value) => { try { localStorage.setItem(key, value); } catch (_) { /* iframe storage may be restricted */ } };
+      const safeRemove = key => { try { localStorage.removeItem(key); } catch (_) {} };
 
-      function storedTheme() {
-        try {
-          const theme = localStorage.getItem(storageKey);
-          return (theme === 'dark' || theme === 'light') ? theme : null;
-        } catch (_) { return null; }
-      }
-      function saveTheme(theme) {
-        try { localStorage.setItem(storageKey, theme); } catch (_) { /* Private browsing or iframe storage restrictions */ }
-      }
       function setTheme(theme) {
         const dark = theme === 'dark';
         root.dataset.theme = theme;
         toggle.setAttribute('aria-label', dark ? 'Włącz motyw jasny' : 'Włącz motyw ciemny');
         toggle.setAttribute('aria-pressed', String(dark));
-        label.textContent = dark ? 'Jasny' : 'Ciemny';
+        themeLabel.textContent = dark ? 'Jasny' : 'Ciemny';
         icon.innerHTML = dark
           ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>'
           : '<path d="M20.8 13.1A8.5 8.5 0 0 1 10.9 3.2 8.5 8.5 0 1 0 20.8 13.1Z"/>';
       }
-      const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(storedTheme() || (systemDark ? 'dark' : 'light'));
+      const preferredDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const storedTheme = safeLoad(themeStorageKey);
+      setTheme(['dark','light'].includes(storedTheme) ? storedTheme : (preferredDark ? 'dark' : 'light'));
       toggle.addEventListener('click', () => {
-        const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-        setTheme(next);
-        saveTheme(next);
+        const theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        setTheme(theme);
+        safeSave(themeStorageKey, theme);
       });
+
+      // A custom target is valid only on the day it was chosen and before its local time.
+      let customTarget = null;
+      try {
+        const saved = JSON.parse(safeLoad(targetStorageKey));
+        if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved.day) && /^([01]\d|2[0-3]):[0-5]\d$/.test(saved.time)) {
+          customTarget = saved;
+        }
+      } catch (_) { /* no saved target */ }
+
+      function targetDate(day, hhmm) {
+        const [hh, mm] = hhmm.split(':').map(Number);
+        const result = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hh, mm, 0, 0);
+        return result;
+      }
+      function expireCustomTarget(now) {
+        if (!customTarget) return;
+        if (customTarget.day !== todayKey(now) || now >= targetDate(now, customTarget.time)) {
+          customTarget = null;
+          safeRemove(targetStorageKey);
+        }
+      }
       function updateClock() {
         const now = new Date();
-        clock.textContent = timeFormatter.format(now);
+        expireCustomTarget(now);
+        clock.textContent = formatter.format(now);
         date.textContent = dateFormatter.format(now);
+        const endTime = customTarget ? customTarget.time : '22:00';
+        const end = targetDate(now, endTime);
+        // Default target stays at 22:00 today: after 22:00 show 00:00 until midnight.
+        const minutes = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 60000));
+        const hh = Math.floor(minutes / 60);
+        const mm = minutes % 60;
+        targetLabel.textContent = endTime;
+        hoursLeft.textContent = pad(hh);
+        minutesLeft.textContent = pad(mm);
+        countdownButton.setAttribute('aria-label', `Do ${endTime} pozostało ${hh} godzin i ${mm} minut. Kliknij, aby zmienić godzinę końcową.`);
       }
+
+      function closeEditor() {
+        editorLayer.hidden = true;
+        countdownButton.setAttribute('aria-expanded', 'false');
+        timeError.textContent = '';
+        countdownButton.focus();
+      }
+      function openEditor() {
+        const now = new Date();
+        expireCustomTarget(now);
+        input.value = customTarget ? customTarget.time : '22:00';
+        timeError.textContent = '';
+        editorLayer.hidden = false;
+        countdownButton.setAttribute('aria-expanded', 'true');
+        input.focus();
+      }
+      countdownButton.addEventListener('click', openEditor);
+      cancel.addEventListener('click', closeEditor);
+      editorLayer.addEventListener('click', e => { if (e.target === editorLayer) closeEditor(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !editorLayer.hidden) closeEditor(); });
+      reset.addEventListener('click', () => {
+        customTarget = null;
+        safeRemove(targetStorageKey);
+        updateClock();
+        closeEditor();
+      });
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const value = input.value;
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+          timeError.textContent = 'Wpisz poprawną godzinę (GG:MM).';
+          return;
+        }
+        const now = new Date();
+        if (value === '22:00') {
+          customTarget = null;
+          safeRemove(targetStorageKey);
+        } else if (targetDate(now, value) <= now) {
+          timeError.textContent = 'Wybierz późniejszą godzinę dzisiaj.';
+          return;
+        } else {
+          customTarget = {day: todayKey(now), time: value};
+          safeSave(targetStorageKey, JSON.stringify(customTarget));
+        }
+        updateClock();
+        closeEditor();
+      });
+
       updateClock();
       setInterval(updateClock, 250);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) updateClock(); });
     })();
   </script>
 </body>
